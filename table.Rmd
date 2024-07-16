@@ -1,0 +1,151 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(readr)
+library(writexl)
+
+```
+
+```{r}
+setwd("C://Users/Anahid/Desktop/announcement/announcement")
+
+checkm <- read_tsv("CheckM_summary_table.tsv")
+checkm
+
+gtdb <- read_tsv("gtdbtk.bac120.summary.tsv")
+gtdb
+
+contigs <- read_tsv("merged_columns.tsv")
+contigs
+
+transpose <- read_tsv("transposed_file.txt")
+transpose
+```
+```{r}
+checkm <- checkm %>% 
+  semi_join(gtdb, by = c("Bin Id" = "user_genome" ))
+checkm
+```
+```{r}
+joined <- checkm %>% 
+  left_join(gtdb , by=c("Bin Id" = "user_genome"))
+joined
+```
+
+```{r}
+
+joined <- joined %>% 
+  select(1:15 ) %>% 
+  select(-"Marker lineage") %>% 
+  select(-"Strain heterogeneity") %>% 
+  arrange(desc(Completeness)) %>% 
+  separate(classification, into = c("Domain", "Phyla", "Class", "Order", "Family", "Genus", "Species"), sep = ";") %>%
+  mutate(
+    Domain= sub("d__", "",Domain),
+    Phyla = sub("p__", "", Phyla),
+    Class = sub("c__", "", Class),
+    Order = sub("o__", "", Order),
+    Family = sub("f__", "", Family),
+    Genus = sub("g__", "", Genus),
+    Species = sub("s__", "", Species)
+  )
+
+joined
+
+# write_xlsx(joined , "table.xlsx")
+```
+
+```{r}
+
+
+transposed_data <- t(contigs)
+
+transposed_df <- as.data.frame(transposed_data)
+
+# write.table(transposed_df, "transposed_file.txt", sep="\t", quote=FALSE, col.names=NA)
+
+
+
+# write.table(transposed_df, "transposed_file.txt", sep="\t", quote=FALSE, col.names=NA)
+
+transpose <- read_tsv("transposed_file.txt")
+transpose
+```
+
+
+
+```{r}
+
+joined <- joined %>% 
+  left_join(transpose , by=c("Bin Id" = "Assembly"))
+joined
+
+
+```
+```{r}
+#check for same values
+
+
+column1_db1 <- joined[[1]]
+column1_db2 <- transpose[[1]]
+
+# Check if the values are the same
+if (setequal(column1_db1, column1_db2)) {
+  print("The values in the first columns of db1 and db2 are the same.")
+} else {
+  print("The values in the first columns of db1 and db2 are different.")
+}
+
+```
+```{r}
+# Assuming db is your data frame
+joined$`Bin Id` <- gsub("-", "_", joined$`Bin Id`)
+
+# View the updated data frame
+print(joined)
+
+
+```
+
+
+```{r}
+# Assuming joined and transpose are your data frames
+values_joined <- unique(joined$`Bin Id`)
+values_transpose <- unique(transpose$Assembly)
+
+# Find values in transpose but not in joined
+not_in_joined <- setdiff(values_transpose, values_joined)
+
+# Print values not in joined
+print("Values in transpose but not in joined:")
+print(not_in_joined)
+
+
+```
+```{r}
+
+values_to_remove <- c("KM_152_bin.12", "KM_80_bin.43", "KM_81_bin.59")
+
+# Filter the data frame
+transpose <- transpose %>% 
+  filter(!Assembly %in% values_to_remove)
+
+
+transpose
+
+```
+
+```{r}
+
+joined <- joined %>% 
+  left_join(transpose , by=c("Bin Id" = "Assembly"))
+
+joined
+
+```
+
