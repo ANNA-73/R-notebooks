@@ -1,0 +1,76 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+setwd("C://Users/Anahid/Desktop/Howler/R-mpa")
+```
+
+```{r}
+###libraries
+# devtools::install_github("jbengler/tidyheatmaps")
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tidyheatmaps)
+library(reshape2)
+library(RColorBrewer)
+library(vegan)
+
+```
+
+```{r}
+# read the data- these are filtered  and saved by"mpa-leve-filtering" notebook
+species <- read.table('new-filtered_species.txt', header=TRUE, sep='\t')
+species
+genus <- read.table("new-filtered_genus.txt" , header = TRUE , sep = '\t')
+genus
+```
+
+```{r}
+### to normalize the data 
+
+#relative abundances
+
+# Store genus names
+genus_names <- genus[,1]
+
+# Convert the numerical data to matrix for normalization
+numerical_data <- as.matrix(genus[,-1])  # exclude first column but keep it stored
+
+# Normalize
+normalized_data <- sweep(numerical_data, 2, colSums(numerical_data), '/')
+normalized_data <- normalized_data * 100
+
+# Create final dataframe with genus names
+final_genus <- data.frame(Genus=genus_names, normalized_data)
+
+
+final_genus
+
+```
+```{r}
+# Store genus names
+species_names <- species[,1]
+
+# Convert the numerical data to matrix for normalization
+numerical_data <- as.matrix(species[,-1])  # exclude first column but keep it stored
+
+# Normalize
+normalized_data <- sweep(numerical_data, 2, colSums(numerical_data), '/')
+normalized_data <- normalized_data * 100
+
+# Create final dataframe with genus names
+final_species <- data.frame(Species=species_names, normalized_data)
+
+
+final_species
+
+
+```
+
