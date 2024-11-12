@@ -13,17 +13,15 @@ library(tidyverse)
 
 ```{r}
 
-### Load your phyloseq object
+
 
 
 physeq <- readRDS("asv_table_cp_20240625.rds")
 
-###View the OTU table)
+
 ### Convert to dataframe
 df <- psmelt(physeq$Amplicon)
-# df  <- df %>%
-#   select(-OTU)
-### View the dataframe
+
 head(df)
 
 
@@ -39,19 +37,29 @@ ASV_genus
 # write.table(ASV_genus, "ASV_genus.txt" , sep = "\t")
 ```
 
+```{r}
+ASV_family <- df %>%
+  select(Sample, Abundance, Family)
+ASV_family
+
+write.table(ASV_family, "ASV_family.txt" , sep = "\t")
+
+```
+
+
 
 ```{r}
-# Aggregate the data
-df_aggregated <- ASV_genus %>%
-  group_by(Genus, Sample) %>%
+### Aggregate the data
+df_aggregated <- ASV_family %>%
+  group_by(Family, Sample) %>%
   summarize(Abundance = sum(Abundance, na.rm = TRUE)) %>%
   ungroup()
 
-# Transform the dataframe
+### Transform to wide
 df_wide <- df_aggregated %>%
   pivot_wider(names_from = Sample, values_from = Abundance)
 
-# Print the transformed dataframe
+
 print(df_wide)
 
 ```
@@ -70,10 +78,12 @@ taxa_table <- read.table("t_taxa.txt",
 taxa_table$Sample <- gsub("-", "_", taxa_table$Sample)
 colnames(taxa_table) <- gsub("\\.", "_", colnames(taxa_table))
 
-row.names(taxa_table) = taxa_table$Sample
-taxa_table$Sample <- NULL
 
-    
+# row.names(taxa_table) = taxa_table$Sample
+# taxa_table$Sample <- NULL
+
+taxa_table   
+
 ```
 
 
@@ -114,18 +124,24 @@ print(head(metadata_long))
 ```
 
 ```{r}
-metadata <-  read.table("ready_metadata.tsv",
+
+metadata <-  read.table("Q_ready_metadata.csv",
                           header           = TRUE,
-                          sep              = "\t", 
+                          sep              = ",", 
                           stringsAsFactors = FALSE)
 
+
+taxa_table %>% dplyr::filter(Sample %in% metadata$Sample)
+taxa_table
+row.names(taxa_table) = taxa_table$Sample
+taxa_table$Sample <- NULL
 
 row.names(metadata) = metadata$Sample
 metadata$Sample   <- NULL
 
 metadata$Quartile <-
-  factor(metadata$Quartile, levels = c( "Quartile_1", "Quartile_2", "Quartile_3", "Quartile_4" ))
-
+  factor(metadata$Quartile, levels = c( "Q1", "Q2", "Q3", "Q4" ))
+# metadata$Quartile <- as.character(metadata$Quartile)
 metadata
                      
 
@@ -137,15 +153,18 @@ metadata
 set.seed(1)
 fit_out <- maaslin3(input_data = taxa_table ,
                     input_metadata = metadata,
-                    output = 'hmp2_output',
-                    formula = '~ Quartile ',
+                    output = 'hmp2_output_family',
+                    formula = '~ Quartile',
                     normalization = 'TSS',
+                    min_prevalence = 0.1 ,
+                    random_effects = 'Sample',
                     transform = 'LOG',
                     augment = TRUE,
+                    # group_effects = 'Quartile',
                     standardize = TRUE,
                     max_significance = 0.1,
                     median_comparison_abundance = TRUE,
-                    median_comparison_prevalence = FALSE,
+                    median_comparison_prevalence = TRUE,
                     max_pngs = 250,
                     cores = 1)
 
