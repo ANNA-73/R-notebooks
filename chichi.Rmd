@@ -16,11 +16,11 @@ library(tidyverse)
 
 
 
-physeq <- readRDS("asv_table_cp_20240625.rds")
+physeq <- readRDS("decontam_df.rds")
 
 
 ### Convert to dataframe
-df <- psmelt(physeq$Amplicon)
+df <- psmelt(physeq)
 
 head(df)
 
@@ -34,7 +34,7 @@ ASV_genus <- df %>%
   select(Sample, Abundance, Genus)
 ASV_genus
 
-# write.table(ASV_genus, "ASV_genus.txt" , sep = "\t")
+write.table(ASV_genus, "ASV_genus.txt" , sep = "\t")
 ```
 
 ```{r}
@@ -64,7 +64,6 @@ print(df_wide)
 
 ```
 ```{r}
-
 taxa_table <- t(df_wide)
 taxa_table <- as.data.frame(taxa_table)
 taxa_table
@@ -131,7 +130,7 @@ metadata <-  read.table("Q_ready_metadata.csv",
                           stringsAsFactors = FALSE)
 
 
-taxa_table %>% dplyr::filter(Sample %in% metadata$Sample)
+taxa_table <- taxa_table %>% dplyr::filter(Sample %in% metadata$Sample)
 taxa_table
 row.names(taxa_table) = taxa_table$Sample
 taxa_table$Sample <- NULL
