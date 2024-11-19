@@ -1,0 +1,166 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(phyloseq)
+library(readr)
+library(Maaslin2)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+```
+
+```{r}
+
+
+
+
+physeq <- readRDS("decontam_df.rds")
+
+
+### Convert to dataframe
+df <- psmelt(physeq)
+
+head(df)
+
+
+# write.table(df, "ASV-chichi.tsv", sep = "\t")
+
+```
+```{r}
+#### from df select what we wnat
+ASV_genus <- df %>%
+  select(Sample, Abundance, Genus)
+ASV_genus
+
+write.table(ASV_genus, "ASV_genus.txt" , sep = "\t")
+```
+
+```{r}
+ASV_family <- df %>%
+  select(Sample, Abundance, Family)
+ASV_family
+
+write.table(ASV_family, "ASV_family.txt" , sep = "\t")
+
+```
+
+
+
+```{r}
+### Aggregate the data
+df_aggregated <- ASV_family %>%
+  group_by(Family, Sample) %>%
+  summarize(Abundance = sum(Abundance, na.rm = TRUE)) %>%
+  ungroup()
+
+### Transform to wide
+df_wide <- df_aggregated %>%
+  pivot_wider(names_from = Sample, values_from = Abundance)
+
+
+print(df_wide)
+
+```
+```{r}
+taxa_table <- t(df_wide)
+taxa_table <- as.data.frame(taxa_table)
+taxa_table
+write.table(taxa_table, file = "t_taxa.txt" , sep="\t")
+```
+```{r}
+taxa_table <- read.table("t_taxa.txt",
+                           header           = TRUE,
+                           sep              = "\t", 
+                           stringsAsFactors = FALSE) 
+taxa_table$Sample <- gsub("-", "_", taxa_table$Sample)
+colnames(taxa_table) <- gsub("\\.", "_", colnames(taxa_table))
+
+
+# row.names(taxa_table) = taxa_table$Sample
+# taxa_table$Sample <- NULL
+
+taxa_table   
+
+```
+
+
+
+```{r}
+
+# ASV <- read_tsv("ASV-chichi.tsv")
+### df ready for maaslin3 , no special charachter
+metadata <- read.csv("metadata.csv")
+
+metadata <- metadata %>%
+  mutate_all(~ gsub('"','', as.character(.))) %>%
+  mutate_all(~ gsub('-','_', as.character(.)))
+
+colnames(metadata) <- gsub("\\.","_",colnames(metadata))
+  
+# write.table(metadata, "ready_metadata.tsv", sep = "\t")
+
+metadata
+```
+
+```{r}
+### I need to change how this metadata is presented
+
+metadata_long <- pivot_longer(metadata, cols = everything(), values_to = 'Sample', names_to = 'Quartile')
+
+# Clean up the 'Quartile' column to only have the quartile number
+metadata_long$Quartile <- gsub('Quartile ', '', metadata_long$Quartile)
+metadata_long <- metadata_long[, c('Sample', 'Quartile')]
+
+# Display the transformed data
+print(head(metadata_long))
+
+# write.table(metadata_long , "ready_metadata.tsv", sep = "\t")
+
+
+
+```
+
+```{r}
+
+metadata <-  read.table("Q_ready_metadata.csv",
+                          header           = TRUE,
+                          sep              = ",", 
+                          stringsAsFactors = FALSE)
+
+
+taxa_table <- taxa_table %>% dplyr::filter(Sample %in% metadata$Sample)
+taxa_table
+row.names(taxa_table) = taxa_table$Sample
+taxa_table$Sample <- NULL
+
+row.names(metadata) = metadata$Sample
+metadata$Sample   <- NULL
+
+metadata$Quartile <-
+  factor(metadata$Quartile, levels = c( "Q1", "Q2", "Q3", "Q4" ))
+# metadata$Quartile <- as.character(metadata$Quartile)
+metadata
+                     
+
+```
+
+
+```{r}
+
+
+
+fit_data = Maaslin2(input_data     = taxa_table, 
+                    input_metadata = metadata, 
+                    min_prevalence = 0.1,
+                    max_significance = 0.1 ,
+                    transform = 'LOG',
+                    normalization  = "TSS",
+                    standardize = TRUE , 
+                    output         = "maaslin2-chichi-Q4", 
+                    fixed_effects  = "Quartile" ,
+                    reference      = "Q4" )
+
+```
+
