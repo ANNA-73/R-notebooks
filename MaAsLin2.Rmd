@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*.
+
+```{r}
+setwd("C://Users/Anahid/Desktop/Howler")
+library(Maaslin2)
+library(readr)
+```
+
+
+```{r}
+# humann <- read_tsv("all-merged.tsv")
+# humann[1,]
+# 
+# header <- readLines(humann, n = 1)
+# 
+# 
+# cleaned_header <- gsub("_Abundance-CPM", "", header)
+# 
+# 
+# cat(cleaned_header, "\n")
+
+
+df_input_data = read.table(file             = "all-merged.tsv",
+                           header           = TRUE,
+                           sep              = "\t",
+                           row.names        = 1,
+                           stringsAsFactors = FALSE)
+
+
+df_input_data
+
+```
+
+
+```{r}
+
+df_input_metadata = read.table(file             = "howlermeta.txt", 
+                               header           = TRUE, 
+                               sep              = "\t", 
+                               row.names        = 1,
+                               stringsAsFactors = FALSE)
+
+df_input_metadata
+```
+
+
+```{r}
+fit_data2 = Maaslin2(input_data     = df_input_data, 
+                     input_metadata = df_input_metadata, 
+                     min_prevalence = 0,
+                     normalization  = "NONE",
+                     output         = "demo_output2", 
+                     fixed_effects  = c("Season", "Individual"),
+                     reference      = c("Season"))
+
+```
+
+
+
