@@ -22,7 +22,7 @@ ind_palette <- c(
   "Hugo"     = "#855D5D"   # Brown
 )
 
-season_palette <- c("Rain"= "#120976","Intermidiate"="#8DA080","Dry"="#DAA520" )
+season_palette <- c("Rain"= "#120976","Intermediate"="#8DA080","Dry"="#DAA520" )
 show_col(season_palette)
 ```
 

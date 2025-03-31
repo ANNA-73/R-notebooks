@@ -30,7 +30,7 @@ ind_palette <- c(
   "Hugo"     = "#855D5D"   # Brown
 )
 
-season_palette <- c("Rain"= "#120976","Intermidiate"="#8DA080","Dry"="#DAA520" )
+season_palette <- c("Rain"= "#120976","Intermediate"="#8DA080","Dry"="#DAA520" )
 
 ## for other categorical colors like taxa
 
@@ -85,6 +85,99 @@ bin_taxa <-merged_df <- merge(bin_taxa, metadata, by.x='sample', by.y='SampleID'
 colnames(bin_taxa) <- gsub("\\.x$|\\.y$", "", colnames(bin_taxa))
 bin_taxa
 # write.csv(bin_taxa, "MAG_clean_taxanomy_merged.csv", row.names = FALSE)
+```
+```{r}
+# Define custom color palette
+season_palette <- c("Rain"= "#120976", "Intermediate" = "#8DA080", "Dry" = "#DAA520")
+
+# Group by sample and count bins
+sample_bins <- df %>% 
+  group_by(sample, Season) %>% 
+  summarise(count_bins = n(), .groups = 'drop')
+
+# Calculate statistics per season
+season_stats <- sample_bins %>%
+  group_by(Season) %>%
+  summarise(
+    total_bins = sum(count_bins),
+    n_samples = n(),
+    mean_bins = mean(count_bins),
+    median_bins = median(count_bins),
+    sd_bins = sd(count_bins),
+    .groups = 'drop'
+  )
+
+# Sort samples
+sample_bins <- sample_bins %>% 
+  arrange(Season, desc(count_bins)) %>%
+  mutate(sample = factor(sample, levels = sample))
+
+p_bin_num <- ggplot(sample_bins, aes(x = sample, y = count_bins, fill = Season)) +
+  geom_bar(stat = "identity", alpha = 0.9, width = 0.8) +
+  labs(
+    title = "Distribution of Bacterial MAGs Across Samples",
+    
+    x = "Sample ID",
+    y = "Number of MAGs"
+  ) +
+  theme_classic(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 10, face = "bold"),
+    axis.text.y = element_text(angle = 0, hjust = 1, size = 14, face = "bold"),
+    plot.title = element_text(hjust = 0.5, size = 20, face = "bold"),
+    axis.title.x = element_text(size = 16, face = "bold"),
+    axis.title.y = element_text(size = 16, face = "bold"),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(hjust = 0, face = "italic"),
+    legend.position = "top",
+    panel.grid.major.y = element_line(color = "gray90")
+  ) +
+  scale_fill_manual(values = season_palette)
+
+# Add season statistics
+annotation_data <- sample_bins %>%
+  group_by(Season) %>%
+  summarise(
+    x_pos = mean(as.integer(sample)),
+    y_pos = max(count_bins) * 1.1,
+    .groups = 'drop'
+  ) %>%
+  left_join(season_stats, by = "Season")
+
+# Add annotations with more statistics
+p_bin_num <- p_bin_num +
+  geom_text(
+    data = annotation_data,
+    aes(x = x_pos, y = y_pos, 
+        label = paste0(
+          "Total: ", total_bins, 
+          "\
+Samples: ", n_samples
+          
+        )),
+    color = "black",
+    fontface = "bold",
+    size = 6,
+    show.legend = FALSE
+  )
+
+# Add mean line per season
+p_bin_num <- p_bin_num +
+  stat_summary(
+    aes(group = Season, color = Season),
+    fun = mean, geom = "line", size = 1.2,
+    alpha = 0.7
+  ) +
+  scale_color_manual(values = season_palette) +
+  scale_color_manual(values = season_palette, guide = "none")
+
+# Export high-resolution figure
+ggsave("bacterial_bins_by_season.png", p_bin_num, width = 14, height = 8, dpi = 300)
+
+# Display the plot
+print(p_bin_num)
 ```
 
 ```{r}
